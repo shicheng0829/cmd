@@ -5,33 +5,33 @@
 //
 // A basic example that runs env and prints its output:
 //
-//   import (
-//       "fmt"
-//       "github.com/go-cmd/cmd"
-//   )
+//	import (
+//	    "fmt"
+//	    "github.com/go-cmd/cmd"
+//	)
 //
-//   func main() {
-//       // Create Cmd, buffered output
-//       envCmd := cmd.NewCmd("env")
+//	func main() {
+//	    // Create Cmd, buffered output
+//	    envCmd := cmd.NewCmd("env")
 //
-//       // Run and wait for Cmd to return Status
-//       status := <-envCmd.Start()
+//	    // Run and wait for Cmd to return Status
+//	    status := <-envCmd.Start()
 //
-//       // Print each line of STDOUT from Cmd
-//       for _, line := range status.Stdout {
-//           fmt.Println(line)
-//       }
-//   }
+//	    // Print each line of STDOUT from Cmd
+//	    for _, line := range status.Stdout {
+//	        fmt.Println(line)
+//	    }
+//	}
 //
 // Commands can be ran synchronously (blocking) or asynchronously (non-blocking):
 //
-//   envCmd := cmd.NewCmd("env") // create
+//	envCmd := cmd.NewCmd("env") // create
 //
-//   status := <-envCmd.Start() // run blocking
+//	status := <-envCmd.Start() // run blocking
 //
-//   statusChan := envCmd.Start() // run non-blocking
-//   // Do other work while Cmd is running...
-//   status <- statusChan // blocking
+//	statusChan := envCmd.Start() // run non-blocking
+//	// Do other work while Cmd is running...
+//	status <- statusChan // blocking
 //
 // Start returns a channel to which the final Status is sent when the command
 // finishes for any reason. The first example blocks receiving on the channel.
@@ -111,9 +111,9 @@ var (
 // for any reason, this combination of values indicates success (presuming the
 // command only exits zero on success):
 //
-//   Exit     = 0
-//   Error    = nil
-//   Complete = true
+//	Exit     = 0
+//	Error    = nil
+//	Complete = true
 //
 // Error is a Go error from the underlying os/exec.Cmd.Start or os/exec.Cmd.Wait.
 // If not nil, the command either failed to start (it never ran) or it started
@@ -246,13 +246,13 @@ func (c *Cmd) Clone() *Cmd {
 // can use to receive the final Status of the command when it ends. The caller
 // can start the command and wait like,
 //
-//   status := <-myCmd.Start() // blocking
+//	status := <-myCmd.Start() // blocking
 //
 // or start the command asynchronously and be notified later when it ends,
 //
-//   statusChan := myCmd.Start() // non-blocking
-//   // Do other work while Cmd is running...
-//   status := <-statusChan // blocking
+//	statusChan := myCmd.Start() // non-blocking
+//	// Do other work while Cmd is running...
+//	status := <-statusChan // blocking
 //
 // Exactly one Status is sent on the channel when the command ends. The channel
 // is not closed. Any Go error is set to Status.Error. Start is idempotent; it
@@ -320,9 +320,9 @@ func (c *Cmd) Stop() error {
 // as of the Status call time. For example, if the command counts to 3 and three
 // calls are made between counts, Status.Stdout contains:
 //
-//   "1"
-//   "1 2"
-//   "1 2 3"
+//	"1"
+//	"1 2"
+//	"1 2 3"
 //
 // The caller is responsible for tailing the buffered output if needed. Else,
 // consider using streaming output. When the command finishes, buffered output
@@ -521,11 +521,11 @@ func (c *Cmd) run(in io.Reader) {
 // default when created by calling NewCmd. To use OutputBuffer directly with
 // a Go standard library os/exec.Command:
 //
-//   import "os/exec"
-//   import "github.com/go-cmd/cmd"
-//   runnableCmd := exec.Command(...)
-//   stdout := cmd.NewOutputBuffer()
-//   runnableCmd.Stdout = stdout
+//	import "os/exec"
+//	import "github.com/go-cmd/cmd"
+//	runnableCmd := exec.Command(...)
+//	stdout := cmd.NewOutputBuffer()
+//	runnableCmd.Stdout = stdout
 //
 // While runnableCmd is running, call stdout.Lines() to read all output
 // currently written.
@@ -613,20 +613,19 @@ func (e ErrLineBufferOverflow) Error() string {
 // created by calling NewCmdOptions and Options.Streaming is true. To use
 // OutputStream directly with a Go standard library os/exec.Command:
 //
-//   import "os/exec"
-//   import "github.com/go-cmd/cmd"
+//	import "os/exec"
+//	import "github.com/go-cmd/cmd"
 //
-//   stdoutChan := make(chan string, 100)
-//   go func() {
-//       for line := range stdoutChan {
-//           // Do something with the line
-//       }
-//   }()
+//	stdoutChan := make(chan string, 100)
+//	go func() {
+//	    for line := range stdoutChan {
+//	        // Do something with the line
+//	    }
+//	}()
 //
-//   runnableCmd := exec.Command(...)
-//   stdout := cmd.NewOutputStream(stdoutChan)
-//   runnableCmd.Stdout = stdout
-//
+//	runnableCmd := exec.Command(...)
+//	stdout := cmd.NewOutputStream(stdoutChan)
+//	runnableCmd.Stdout = stdout
 //
 // While runnableCmd is running, lines are sent to the channel as soon as they
 // are written and newline-terminated by the command.
@@ -651,6 +650,13 @@ func NewOutputStream(streamChan chan string) *OutputStream {
 	return out
 }
 
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
 // Write makes OutputStream implement the io.Writer interface. Do not call
 // this function directly.
 func (rw *OutputStream) Write(p []byte) (n int, err error) {
@@ -662,17 +668,15 @@ func (rw *OutputStream) Write(p []byte) (n int, err error) {
 		// can contain multiple lines, like "foo\nbar". So in that case nextLine
 		// will be 0 ("foo\nbar\n") then 4 ("bar\n") on next iteration. And i
 		// will be 3 and 7, respectively. So lines are [0:3] are [4:7].
-		newlineOffset := bytes.IndexByte(p[firstChar:], '\n')
+		// split by \n or \r, ignore \r\n
+		newlineOffset := min(bytes.IndexByte(p[firstChar:], '\n'), bytes.IndexByte(p[firstChar:], '\r'))
 		if newlineOffset < 0 {
 			break // no newline in stream, next line incomplete
 		}
 
 		// End of line offset is start (nextLine) + newline offset. Like bufio.Scanner,
 		// we allow \r\n but strip the \r too by decrementing the offset for that byte.
-		lastChar := firstChar + newlineOffset // "line\n"
-		if newlineOffset > 0 && p[newlineOffset-1] == '\r' {
-			lastChar -= 1 // "line\r\n"
-		}
+		lastChar := firstChar + newlineOffset // "line\n" or "line\r"
 
 		// Send the line, prepend line buffer if set
 		var line string
