@@ -650,29 +650,6 @@ func NewOutputStream(streamChan chan string) *OutputStream {
 	return out
 }
 
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-func findNearestNewline(p []byte) int {
-	posR := bytes.IndexByte(p, '\r')
-	posN := bytes.IndexByte(p, '\n')
-	if posN == -1 && posR == -1 {
-		return -1
-	}
-	if posN >= 0 {
-		if posR >= 0 {
-			return min(posN, posR)
-		} else {
-			return posN
-		}
-	}
-	return posR
-}
-
 // Write makes OutputStream implement the io.Writer interface. Do not call
 // this function directly.
 func (rw *OutputStream) Write(p []byte) (n int, err error) {
@@ -685,7 +662,7 @@ func (rw *OutputStream) Write(p []byte) (n int, err error) {
 		// will be 0 ("foo\nbar\n") then 4 ("bar\n") on next iteration. And i
 		// will be 3 and 7, respectively. So lines are [0:3] are [4:7].
 		// split by \n or \r, ignore \r\n
-		newlineOffset := findNearestNewline(p[firstChar:])
+		newlineOffset := bytes.IndexAny(p[firstChar:], "\r\n")
 		if newlineOffset < 0 {
 			break // no newline in stream, next line incomplete
 		}
